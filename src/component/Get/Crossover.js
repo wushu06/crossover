@@ -1,45 +1,58 @@
 import React, { Component } from 'react';
-import DayPickerInput from 'react-day-picker/DayPickerInput';
-import 'react-day-picker/lib/style.css';
-import Spinner from '../../container/Spinner'
 import Plus from '../../plus.png'
+import base64 from 'base-64'
+import Woo from './Woo'
+import Spinner from '../../container/Spinner'
+
+import axios from 'axios'
+import { SITE_ROOT, CK, CS  } from '../../config'
+const OAuth = require('oauth-1.0a');
+const crypto = require('crypto');
 
 
-
-
-let style = {
-    display: 'none'
-};
 class  Crossover extends Component{
     constructor() {
 
         super();
-        this.handleDayChange = this.handleDayChange.bind(this);
         this.state = {
             data: [],
-            loading: true,
+            loading: false,
+            woo:'',
             selectedDay: undefined,
 
 
         }
     }
 
-    componentDidMount () {
-        let today = new Date();
-        let dd = today.getDate();
-        let mm = today.getMonth();
-        let yyyy = today.getFullYear();
-        today = mm+'-'+dd+'-'+yyyy;
-        this.setState({
-            loading: false
-        })
+    componentWillMount() {
+        let headers = new Headers();
+        headers.append("Authorization", "Basic " + base64.encode(CK+":"+CS));
 
+        fetch(SITE_ROOT+"/wp-json/wc/v2/products?per_page=100", {
+            headers: headers
+        })
+            .then(response => response.json())
+            .then((response) => {
+                this.setState({
+                    woo: response,
+
+                })
+
+               console.log(response)
+            })
+            .catch(e => {
+                console.log(e)
+            })
+    }
+
+
+    componentDidUpdate() {
 
 
     }
 
     fetchResult = (date) => {
-        const url = "http://majorgolfdirect.com/api.php?date="+date
+        const url = SITE_ROOT+date
         fetch(url)
             .then(response => response.json())
             .then((response) => {
@@ -55,129 +68,260 @@ class  Crossover extends Component{
 
     }
 
-    addProduct = (add) => {
-        console.log( JSON.stringify(add))
-        let token = localStorage.getItem('token');
-        //console.log(token)
-        const requestHeaders = {
-            'Authorization': 'Bearer ' + token
-        };
-        fetch('http://localhost/checkfire/wp-json/wp/v2/product', {
-            method: 'post',
-            headers: {
-                'Accept': 'application/json, text/plain, *!/!*',
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer '+token
+    addVariableProduct = (variable, ProductID) => {
 
-            },
-            body: JSON.stringify(add)
-        }).then(res=>res.json())
+         fetch(SITE_ROOT+"/wp-json/wc/v2/products/"+ProductID+"/variations",{
+         method: 'post',
+         headers: {
+         'Accept': 'application/json, text/plain, *!/!*',
+         'Content-Type': 'application/json',
+         "Authorization": "Basic " + base64.encode(CK+":"+CS)
 
-            .then(res => console.log(res));
-        const clientID = '8JGRHfmeaRFi8NGGmc3qJyv8Soi1QJ'
-        const secretID = 'lRwuwJdpXs5tL5CloQ6QewgT5WGr9Y'
+         },
+         body: JSON.stringify(variable)
+         }).then(res=>res.json())
+
+         .then(res => console.log(res));
+    }
+
+    checkProductExists = (sku) => {
 
     }
+    addProduct = (add, pslug ) => {
+        console.log(add)
+        this.setState({
+            loading: true
+        })
+        let allWoo = this.state.woo
+        let slug = []
+        Object.keys( allWoo ).map( igKey => {
+            return  slug   = [
+                ... slug,
+                allWoo[igKey].slug
+            ]
+
+
+        })
+        //console.log(slug)
+        if(slug.includes(pslug)){
+            console.log('update')
+            this.setState({
+                loading: false
+            })
+        }else {
+            fetch(SITE_ROOT+"/wp-json/wc/v2/products",{
+                method: 'post',
+                headers: {
+                    'Accept': 'application/json, text/plain, *!/!*',
+                    'Content-Type': 'application/json',
+                    "Authorization": "Basic " + base64.encode(CK+":"+CS)
+
+                },
+                body: JSON.stringify(add)
+            }).then(res=>res.json())
+
+                .then(res => {
+                    this.setState({
+                        loading: false
+                    })
+                    console.log(res)
+                });
+        }
+
+
+
+       /* */
+
+
+
+     //  this.addVariableProduct(variable, responseID)
+
+
+    }
+
     insertAll = (all) => {
-        // console.log(JSON.stringify(all))
-        //  this.addProduct(all)
+        this.setState({
+            loading: true
+        })
+        let allWoo = this.state.woo
+        let slug = []
+        Object.keys( allWoo ).map( igKey => {
+            return  slug   = [
+                ... slug,
+                allWoo[igKey].slug
+            ]
+
+
+        })
+
         Object.keys( all ).map( igKey => {
+            console.log(all[igKey].title)
             let allP  = {
                 "status": "publish",
-                "title":all[igKey].title,
-                "content": all[igKey].content
+                "name":all[igKey].name,
+                "slug":all[igKey].slug,
             }
-            this.addProduct(allP)
+            //console.log(all[igKey].title)
+            this.addProduct(allP, all[igKey].slug)
+
         })
 
     }
-    handleDayChange(day) {
-        let formatDay = day.toISOString().substring(0, 10)
-        formatDay = formatDay.replace(/\//g, "-")
-        this.setState({ selectedDay: formatDay});
-        this.fetchResult(formatDay )
-        style = {
-            display: 'block'
-        };
-    }
+
 
     render () {
+
         let all = []
-        const { selectedDay } = this.state;
+        let data = ''
         // console.log(this.state.data)
-        let state = this.state.data
+        let state = this.props.fetch
+
         let i = 1;
         let styleNumber  = []
-        let data =  Object.keys( state ).map( igKey => {
 
-            // console.log(state[igKey])
-            let AllData  = {
-                "status": "publish",
-                "title":state[igKey].ProductName,
-                "content": state[igKey].SalesPrice,
-                "Attrib1": state[igKey].Attrib1,
-                "Attrib2":state[igKey].Attrib2,
-                "Attrib3":state[igKey].Attrib3,
-                "Brand":state[igKey].Brand,
-                "MRRP":state[igKey].MRRP,
-                "ProdGroup":state[igKey].ProdGroup,
-                "ProductID":state[igKey].ProductID,
-                "ProductName":state[igKey].ProductName,
-                "SalesPrice":state[igKey].SalesPrice,
-                "StyleNumber":state[igKey].StyleNumber,
-                "SubGroup" :state[igKey].SubGroup,
-                "WebSalesPrice" : state[igKey].WebSalesPrice
-            }
-            let add  = {
-                "status": "publish",
-                "title":state[igKey].ProductName,
-                "content": state[igKey].SalesPrice,
-            }
-            let num =  state[igKey].StyleNumber
-            styleNumber = [
-                ... styleNumber,
-                state[igKey].StyleNumber
-            ]
+        if( this.state.loading ){
 
-            all =[
-                ...all,
-                {
+        }
 
-                    "status": "publish",
-                    "title":state[igKey].ProductName,
-                    "content": state[igKey].SalesPrice
+             data = Object.keys(state).map(igKey => {
+                 if(typeof state[igKey].ProductName !== 'undefined') {
+                     // console.log(state[igKey])
+                     let pslug = (state[igKey].ProductName).replace(/\s+/g, '-').toLowerCase();
+
+                     let AllData = {
+                        "status": "publish",
+                        "title": state[igKey].ProductName,
+                        "content": state[igKey].SalesPrice,
+                        "Attrib1": state[igKey].Attrib1,
+                        "Attrib2": state[igKey].Attrib2,
+                        "Attrib3": state[igKey].Attrib3,
+                        "Brand": state[igKey].Brand,
+                        "MRRP": state[igKey].MRRP,
+                        "ProdGroup": state[igKey].ProdGroup,
+                        "ProductID": state[igKey].ProductID,
+                        "ProductName": state[igKey].ProductName,
+                        "SalesPrice": state[igKey].SalesPrice,
+                        "StyleNumber": state[igKey].StyleNumber,
+                        "SubGroup": state[igKey].SubGroup,
+                        "WebSalesPrice": state[igKey].WebSalesPrice
+                    }
+                    let add = {
+                        "name": state[igKey].ProductName,
+                        "slug": pslug,
+                        "type": "simple",
+                        "status": "publish",
+                        "price": state[igKey].SalesPrice,
+                        "purchasable": true,
+                        "total_sales": 0,
+                        "virtual": false,
+                        "downloadable": false,
+                        "manage_stock": false,
+                        "stock_quantity": null,
+                        "in_stock": true,
+                        "dimensions": {
+                            "colour": state[igKey].Attrib1,
+                            "size": state[igKey].Attrib2,
+                            "hand": state[igKey].Attrib3,
+                        },
+
+
+                        "attributes": [
+                            {
+                                "id": 5,
+                                "name": "hand",
+                                "position": 0,
+                                "visible": true,
+                                "variation": true,
+                                "options": [
+                                    "Right Hand"
+                                ]
+                            },
+                            {
+                                "id": 6,
+                                "name": "shaft",
+                                "position": 0,
+                                "visible": true,
+                                "variation": true,
+                                "options": [
+                                    "Regular"
+                                ]
+                            },
+                            {
+                                "id": 9,
+                                "name": "loft",
+                                "position": 0,
+                                "visible": true,
+                                "variation": true,
+                                "options": [
+                                    "3",
+                                    "4",
+                                    "5"
+                                ]
+                            }
+                        ]
+
+
+                    }
+                    let variation = {
+                        "default_attributes": [],
+                        "variations": [
+                            17118,
+                            17119,
+                            17120
+                        ]
+                    }
+
+                    all = [
+                        ...all,
+                        {
+
+                            "status": "publish",
+                            "name": state[igKey].ProductName,
+                            "slug": pslug,
+                        }
+
+                    ]
+
+
+                    return (
+
+                        <tr key={i++}>
+                            <td>{i++}</td>
+                            <td>{state[igKey].ProductID}</td>
+                            <td>{state[igKey].ProductName}</td>
+                            <td>{state[igKey].Brand}</td>
+                            <td>{state[igKey].SalesPrice}</td>
+                            <td>{state[igKey].ProdGroup}</td>
+                            <td>{state[igKey].SubGroup}</td>
+                            <td>{state[igKey].Attrib1}</td>
+                            <td>{state[igKey].Attrib2}</td>
+                            <td>{state[igKey].Attrib3}</td>
+                            <td>{state[igKey].StyleNumber}</td>
+                            <td>
+                                <div className="add-product" onClick={() => this.addProduct(add, pslug)}><img src={Plus}
+                                                                                                              alt=""/>
+                                </div>
+                            </td>
+                        </tr>
+                    )
                 }
-
-            ]
-
-
-            return (
-
-                <tr key={state[igKey].ProductID}>
-                    <td>{i++}</td>
-                    <td>{state[igKey].ProductID}</td>
-                    <td>{state[igKey].ProductName}</td>
-                    <td>{state[igKey].Brand}</td>
-                    <td>{state[igKey].SalesPrice}</td>
-                    <td>{state[igKey].ProdGroup}</td>
-                    <td>{state[igKey].SubGroup}</td>
-                    <td>{state[igKey].Attrib1}</td>
-                    <td>{state[igKey].Attrib2}</td>
-                    <td>{state[igKey].Attrib3}</td>
-                    <td>{state[igKey].StyleNumber}</td>
-                    <td><div className="add-product"  onClick={()=> this.addProduct(add)}><img src={Plus} alt=""/></div> </td>
-                </tr>
-            )
-
-        })
+            })
+        let spinner
+        if( this.state.loading ){
+            spinner = <Spinner/>
+        }else {
+            spinner = ''
+        }
 
         return (
 
-                <div className="Wrapper" style={style}>
+                <div>
+                    {spinner}
 
-                    <div>
-                        <button className="btn btn-success" onClick={()=>this.insertAll(all)}>Insert All Products</button>
-                    </div>
+                    <button className="btn btn-success" onClick={()=>this.insertAll(all)}>Insert All Products</button>
+
+
+
                     <table className="table table-striped">
                         <thead>
                         <tr>

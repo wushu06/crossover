@@ -1,7 +1,7 @@
 import React, {Component} from 'react'
+import { SITE_ROOT, CK, CS, clientID  } from '../../config'
 
-const clientID = '8JGRHfmeaRFi8NGGmc3qJyv8Soi1QJ'
-const secretID = 'lRwuwJdpXs5tL5CloQ6QewgT5WGr9Y'
+
 class Auth extends Component
 {
     constructor() {
@@ -78,7 +78,7 @@ class Auth extends Component
     {
         e.preventDefault()
 
-        window.location.replace('http://localhost/checkfire/oauth/authorize?response_type=code&client_id='+clientID+'&redirect_uri=http://localhost/checkfire/redirect.php');
+        window.location.replace(SITE_ROOT+'/oauth/authorize?response_type=code&client_id='+clientID+'&redirect_uri='+SITE_ROOT+'/redirect.php');
 
     }
 
@@ -87,7 +87,7 @@ class Auth extends Component
 
         return(
             <section className="wrapper animsitionx" id="page" >
-                <form  action="http://localhost/checkfire/oauth/authorize?response_type=code&client_id=MlFENVaYQ0SEh8BftudXO7nSjSB46i&redirect_uri=http://localhost:3000">
+                <form  >
                     <input className="btn btn-success" onClick={this.getLogin} type="submit" value="login"/>
                 </form>
             </section>

@@ -3,13 +3,13 @@ import DayPickerInput from 'react-day-picker/DayPickerInput';
 import 'react-day-picker/lib/style.css';
 import Spinner from '../../container/Spinner'
 import Plus from '../../plus.png'
-
-
-
+import GetCrossover from './Crossover'
+import Woo from './Woo'
 
 let style = {
     display: 'none'
 };
+let spinner =''
 class  Get extends Component{
     constructor() {
 
@@ -34,6 +34,10 @@ class  Get extends Component{
             loading: false
         })
         
+
+
+    }
+    componentWillUpdate () {
 
 
     }
@@ -78,20 +82,9 @@ class  Get extends Component{
         const secretID = 'lRwuwJdpXs5tL5CloQ6QewgT5WGr9Y'
 
     }
-    insertAll = (all) => {
-       // console.log(JSON.stringify(all))
-      //  this.addProduct(all)
-        Object.keys( all ).map( igKey => {
-            let allP  = {
-                "status": "publish",
-                "title":all[igKey].title,
-                "content": all[igKey].content
-            }
-            this.addProduct(allP)
-        })
 
-    }
     handleDayChange(day) {
+
         let formatDay = day.toISOString().substring(0, 10)
         formatDay = formatDay.replace(/\//g, "-")
         this.setState({ selectedDay: formatDay});
@@ -99,81 +92,18 @@ class  Get extends Component{
        style = {
             display: 'block'
         };
+
     }
 
     render () {
-        let all = []
         const { selectedDay } = this.state;
-       // console.log(this.state.data)
-        let state = this.state.data
-        let i = 1;
-        let styleNumber  = []
-        let data =  Object.keys( state ).map( igKey => {
-
-          // console.log(state[igKey])
-           let AllData  = {
-               "status": "publish",
-               "title":state[igKey].ProductName,
-               "content": state[igKey].SalesPrice,
-               "Attrib1": state[igKey].Attrib1,
-               "Attrib2":state[igKey].Attrib2,
-               "Attrib3":state[igKey].Attrib3,
-               "Brand":state[igKey].Brand,
-               "MRRP":state[igKey].MRRP,
-               "ProdGroup":state[igKey].ProdGroup,
-               "ProductID":state[igKey].ProductID,
-               "ProductName":state[igKey].ProductName,
-               "SalesPrice":state[igKey].SalesPrice,
-               "StyleNumber":state[igKey].StyleNumber,
-               "SubGroup" :state[igKey].SubGroup,
-               "WebSalesPrice" : state[igKey].WebSalesPrice
-           }
-           let add  = {
-               "status": "publish",
-               "title":state[igKey].ProductName,
-               "content": state[igKey].SalesPrice,
-           }
-           let num =  state[igKey].StyleNumber
-            styleNumber = [
-               ... styleNumber,
-               state[igKey].StyleNumber
-           ]
-
-            all =[
-                ...all,
-                {
-
-                    "status": "publish",
-                    "title":state[igKey].ProductName,
-                    "content": state[igKey].SalesPrice
-                }
-
-            ]
 
 
-           return (
 
-               <tr key={state[igKey].ProductID}>
-                   <td>{i++}</td>
-                   <td>{state[igKey].ProductID}</td>
-                   <td>{state[igKey].ProductName}</td>
-                   <td>{state[igKey].Brand}</td>
-                   <td>{state[igKey].SalesPrice}</td>
-                   <td>{state[igKey].ProdGroup}</td>
-                   <td>{state[igKey].SubGroup}</td>
-                   <td>{state[igKey].Attrib1}</td>
-                   <td>{state[igKey].Attrib2}</td>
-                   <td>{state[igKey].Attrib3}</td>
-                   <td>{state[igKey].StyleNumber}</td>
-                   <td><div className="add-product"  onClick={()=> this.addProduct(add)}><img src={Plus} alt=""/></div> </td>
-               </tr>
-           )
-
-        })
-       // console.log(styleNumber)
-        let spinner = ''
         if(this.state.loading){
            spinner = <Spinner/>
+        }else {
+            spinner = ''
         }
         return (
             <div>
@@ -185,35 +115,10 @@ class  Get extends Component{
                 {spinner}
                 <div className="Wrapper" style={style}>
 
-                    <div>
-                        <button className="btn btn-success" onClick={()=>this.insertAll(all)}>Insert All Products</button>
-                    </div>
-                    <table className="table table-striped">
-                        <thead>
-                        <tr>
-                            <td>N</td>
-                            <td>ProductID</td>
-                            <td>ProductName</td>
-                            <td>Brand</td>
-                            <td>SalesPrice</td>
-                            <td>ProdGroup</td>
-                            <td>SubGroup</td>
-                            <td>Attrib1</td>
-                            <td>Attrib2</td>
-                            <td>Attrib3</td>
-                            <td>StyleNumber</td>
-                            <td>Add</td>
-                        </tr>
-                        </thead>
-                        <tbody>
 
-                        {data}
+                    <GetCrossover fetch={this.state.data}/>
 
-                        </tbody>
-
-                    </table>
                 </div>
-
 
             </div>
         )

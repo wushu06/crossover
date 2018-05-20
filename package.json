@@ -4,7 +4,9 @@
   "private": true,
   "dependencies": {
     "axios": "^0.18.0",
+    "base-64": "^0.1.0",
     "moment": "^2.22.1",
+    "oauth-1.0a": "^2.2.4",
     "react": "^16.3.2",
     "react-datepicker": "^1.4.1",
     "react-day-picker": "^7.1.9",
@@ -13,6 +15,7 @@
     "react-router": "^4.2.0",
     "react-router-dom": "^4.2.2",
     "react-scripts": "1.1.4",
+    "request": "^2.86.0",
     "styled-components": "^3.2.6"
   },
   "scripts": {
