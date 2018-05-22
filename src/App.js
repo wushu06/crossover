@@ -16,15 +16,15 @@ class App extends Component {
       if(token) {
         allRoutes = (
             <div>
-                <Route path={'/result'} component={Get}/>
-                <Route path={'/add'} component={Post}/>
+                <Route path={`${process.env.PUBLIC_URL}/result`} component={Get}/>
+                <Route path={`${process.env.PUBLIC_URL}/add`} component={Post}/>
             </div>
 
         )
       }
     return (
       <div className="App">
-        <Route path={'/'} component={Home}/>
+        <Route path={`${process.env.PUBLIC_URL}/`} component={Home}/>
           {allRoutes}
       </div>
     );
