@@ -1,15 +1,10 @@
 import React, { Component } from 'react';
 import Plus from '../../plus.png'
 import base64 from 'base-64'
-import Woo from './Woo'
 import Spinner from '../../container/Spinner'
-
-import axios from 'axios'
 import { SITE_ROOT, CK, CS  } from '../../config'
-const OAuth = require('oauth-1.0a');
-const crypto = require('crypto');
 
-let x
+
 class  Crossover extends Component{
     constructor() {
 
@@ -46,7 +41,7 @@ class  Crossover extends Component{
             .catch(e => {
                 console.log(e)
             })
-        fetch(SITE_ROOT+"/wp-json/wc/v2/products/categories", {
+        fetch(SITE_ROOT+"/wp-json/wc/v2/products/categories?per_page=100", {
             headers: headers
         })
             .then(response => response.json())
@@ -56,7 +51,7 @@ class  Crossover extends Component{
 
                 })
 
-                //console.log(response)
+
             })
             .catch(e => {
                 console.log(e)
@@ -64,30 +59,9 @@ class  Crossover extends Component{
     }
 
 
-    componentDidUpdate() {
 
-
-    }
-
-    fetchResult = (date) => {
-        const url = SITE_ROOT+date
-        fetch(url)
-            .then(response => response.json())
-            .then((response) => {
-                this.setState({
-                    data: response,
-                    loading: false
-                })
-                // console.log(response)
-            })
-            .catch(e => {
-                console.log(e)
-            })
-
-    }
-
-    addVariableProduct = (variable, ProductID) => {
-
+    addVariableProduct = ( ProductID, variable) => {
+        console.log('insert variable'+ProductID)
          fetch(SITE_ROOT+"/wp-json/wc/v2/products/"+ProductID+"/variations",{
          method: 'post',
          headers: {
@@ -102,17 +76,22 @@ class  Crossover extends Component{
          .then(res => console.log(res));
     }
 
-    checkProductExists = (sku) => {
 
-    }
     addCat = ( pslug, addcat, catname ) =>{
         this.setState({
             loading: true
         })
         let allWoo = this.state.cats
         let woocat = []
+        let catWname = []
+        let catID
 
         Object.keys( allWoo ).map( igKey => {
+
+            catWname = [
+                ...catWname,
+                {[allWoo[igKey].name] : allWoo[igKey].id}
+            ]
 
             return  woocat   = [
                 ... woocat,
@@ -120,16 +99,23 @@ class  Crossover extends Component{
             ]
 
 
-        })
 
+        })
         // insert / update product based on slug
         if(woocat.includes(catname)){
-            console.log('update')
+            console.log('update cat')
             this.setState({
                 loading: false
             })
+            catWname.map( i => {
+                catID = i[catname]
+                if(typeof catID !== 'undefined') {
+                    this.addProduct( pslug, catID )
+                }
+            })
 
         }else {
+            console.log('insert cat')
             return fetch(SITE_ROOT+"/wp-json/wc/v2/products/categories",{
                 method: 'post',
                 headers: {
@@ -153,15 +139,20 @@ class  Crossover extends Component{
 
     }
     addProduct = ( pslug, catID ) => {
-console.log('called')
         this.setState({
             loading: true
         })
         let allWoo = this.state.woo
         let slug = []
+        let postWid = []
+        let postID
 
         Object.keys( allWoo ).map( igKey => {
-
+           // console.log(pslug +'=' + allWoo[igKey].slug)
+            postWid = [
+                ...postWid,
+                {[allWoo[igKey].slug] : allWoo[igKey].id}
+            ]
             return  slug   = [
                 ... slug,
                 allWoo[igKey].slug
@@ -172,397 +163,165 @@ console.log('called')
 
         // insert / update product based on slug
         if(slug.includes(pslug)){
-            console.log('update')
+            console.log('update post')
             this.setState({
                 loading: false
             })
+            postWid.map( i => {
+                postID = i[pslug]
+                if(typeof postID !== 'undefined') {
+                    let state = this.props.fetch
+                    Object.keys(state).map(ig => {
+                        let pslugV = (state[ig].ProductName).replace(/\s+/g, '-').toLowerCase();
+
+                        if(pslugV === pslug) {
+                            let p = state[ig].SalesPrice
+                            let variation = {
+                                "regular_price": p.toString(),
+                                "attributes": [
+                                    {
+                                        "name": "size",
+                                        "option": state[ig].Attrib1
+
+                                    },
+                                    {
+                                        "name": "colour",
+                                        "option": state[ig].Attrib2
+
+                                    },
+                                    {
+
+                                        "name": "hand",
+                                        "option": state[ig].Attrib3
+                                    }
+                                ]
+                            }
+                            this.addVariableProduct(postID, variation)
+                        }
+                    })
+                }
+            })
+
+
 
         }else {
+            console.log('insert post')
             let state = this.props.fetch
             let add
             Object.keys(state).map(igKey => {
                 if(typeof state[igKey].ProductName !== 'undefined') {
-                    // console.log(state[igKey])
-                    let pslug = (state[igKey].ProductName).replace(/\s+/g, '-').toLowerCase();
-                     add = {
-                        "name": state[igKey].ProductName,
-                        "slug": pslug,
-                        "type": "variable",
-                        "status": "publish",
-                        "price": state[igKey].SalesPrice,
-                        "purchasable": true,
-                        "total_sales": 0,
-                        "virtual": false,
-                        "downloadable": false,
-                        "manage_stock": false,
-                        "stock_quantity": null,
-                        "in_stock": true,
-                        "dimensions": {
-                            "colour": state[igKey].Attrib1,
-                            "size": state[igKey].Attrib2,
-                            "hand": state[igKey].Attrib3,
-                        },
-                        "categories": [
-                            {
-                                "id": catID
-                            }
-                        ],
-                        "attributes": [
-                            {
-                                "name": "size",
-                                "position": 0,
-                                "visible": true,
-                                "variation": true,
-                                "options": [
-                                    state[igKey].Attrib1
-                                ]
-                            },
-                            {
-                                "name": "colour",
-                                "position": 0,
-                                "visible": true,
-                                "variation": true,
-                                "options": [
-                                    state[igKey].Attrib2
-                                ]
-                            },
-                            {
-                                "name": "hand",
-                                "position": 0,
-                                "visible": true,
-                                "variation": true,
-                                "options": [
-                                    state[igKey].Attrib3
-                                ]
-                            }
-                        ]
+                    let pslugC = (state[igKey].ProductName).replace(/\s+/g, '-').toLowerCase();
+                     if(pslugC === pslug) {
+                         add = {
+                             "name": state[igKey].ProductName,
+                             "slug": pslugC,
+                             "type": "variable",
+                             "status": "publish",
+                             "price": state[igKey].SalesPrice,
+                             "purchasable": true,
+                             "total_sales": 0,
+                             "virtual": false,
+                             "downloadable": false,
+                             "manage_stock": false,
+                             "stock_quantity": null,
+                             "in_stock": true,
+                             "dimensions": {
+                                 "colour": state[igKey].Attrib1,
+                                 "size": state[igKey].Attrib2,
+                                 "hand": state[igKey].Attrib3,
+                             },
+                             "categories": [
+                                 {
+                                     "id": catID
+                                 }
+                             ],
+                             "attributes": [
+                                 {
+                                     "name": "size",
+                                     "position": 0,
+                                     "visible": true,
+                                     "variation": true,
+                                     "options": [
+                                         state[igKey].Attrib1
+                                     ]
+                                 },
+                                 {
+                                     "name": "colour",
+                                     "position": 0,
+                                     "visible": true,
+                                     "variation": true,
+                                     "options": [
+                                         state[igKey].Attrib2
+                                     ]
+                                 },
+                                 {
+                                     "name": "hand",
+                                     "position": 0,
+                                     "visible": true,
+                                     "variation": true,
+                                     "options": [
+                                         state[igKey].Attrib3
+                                     ]
+                                 }
+                             ]
 
 
-                    }
+                         }
+                     }
                 }
             });
 
-            fetch(SITE_ROOT+"/wp-json/wc/v2/products",{
-                method: 'post',
-                headers: {
-                    'Accept': 'application/json, text/plain, *!/!*',
-                    'Content-Type': 'application/json',
-                    "Authorization": "Basic " + base64.encode(CK+":"+CS)
+            if(typeof add !== 'undefined') {
 
-                },
-                body: JSON.stringify(add)
-            }).then(res=>res.json())
+                fetch(SITE_ROOT + "/wp-json/wc/v2/products", {
+                    method: 'post',
+                    headers: {
+                        'Accept': 'application/json, text/plain, *!/!*',
+                        'Content-Type': 'application/json',
+                        "Authorization": "Basic " + base64.encode(CK + ":" + CS)
 
-                .then(res => {
-                    this.setState({
-                        loading: false
-                    })
-                    console.log(res)
-                });
+                    },
+                    body: JSON.stringify(add)
+                }).then(res => res.json())
+
+                    .then(res => {
+                        this.setState({
+                            loading: false
+                        })
+                        console.log(res)
+                    });
+            }
         }
 
 
 
-       /* */
-
-
-
-     //  this.addVariableProduct(variable, responseID)
-
-
     }
 
 
 
 
 
-    insertAll = (all) => {
+    insertAll = () => {
         this.setState({
             loading: true
         })
-    let catID
-    catID = this.insertAllcheckCat('catodnesx')
-        console.log(catID)
-        // retreive or insert cat
-        Object.keys( all ).map( igKey => {
-
-
-          //this.checkCat(all[igKey].categories[0].name)
-
-            let allP  = {
-                "name":  all[igKey].name,
-                "slug": all[igKey].slug,
-                "type": "variable",
-                "status": "publish",
-                "price":  all[igKey].price,
-                "purchasable": true,
-                "total_sales": 0,
-                "virtual": false,
-                "downloadable": false,
-                "manage_stock": false,
-                "stock_quantity": null,
-                "in_stock": true,
-                "dimensions": {
-                    "colour":  all[igKey].dimensions.colour,
-                    "size":  all[igKey].dimensions.size,
-                    "hand":  all[igKey].dimensions.hand,
-                },
-                "categories": [
-                    {
-                        "id": catID
-                    }
-                ],
-                "attributes": [
-                    {
-                        "name": "size",
-                        "position": 0,
-                        "visible": true,
-                        "variation": true,
-                        "options": [
-                            all[igKey].attributes[0].options[0] === '' ? '' : all[igKey].attributes[0].options[0]
-                        ]
-                    },
-                    {
-                        "name": "colour",
-                        "position": 0,
-                        "visible": true,
-                        "variation": true,
-                        "options": [
-                            all[igKey].attributes[1].options[0] === '' ? '' : all[igKey].attributes[1].options[0]
-                        ]
-                    },
-                    {
-                        "name": "hand",
-                        "position": 0,
-                        "visible": true,
-                        "variation": true,
-                        "options": [
-                            all[igKey].attributes[2].options[0] === '' ? '' : all[igKey].attributes[2].options[0]
-                        ]
-                    }
-                ]
-            }
-            //console.log(all[igKey].title)
-           // this.addProduct(allP, all[igKey].slug)
-
-        })
-
-    }
-
-    insertAllcheckCat = (all) => {
-
-        // first step: looping through all data to check for category and to have products one by one
-        Object.keys( all ).map( igKey => {
-            // first part
-           let cat = all[igKey].categories[0].name
-
-            // second part
-            let allWoo = this.state.cats
-            let catNames = []
-            let catName
-            let catID
-            let catIDs = []
-            // second step: check the woo loop for cat
-            Object.keys( allWoo ).map( ig => {
-                // console.log(allWoo[ig])
-                catIDs = [
-                    ...catIDs,
-                    allWoo[ig].id
-                ]
-                catNames   = [
-                    ... catNames,
-                    allWoo[ig].name
-                ]
-
-                // step three * A : if we found cat we insert now
-                if( allWoo[ig].name === cat ) {
-                     catID = allWoo[ig].id
-                    let allP  = {
-                        "name":  all[igKey].name,
-                        "slug": all[igKey].slug,
-                        "type": "variable",
-                        "status": "publish",
-                        "price":  all[igKey].price,
-                        "purchasable": true,
-                        "total_sales": 0,
-                        "virtual": false,
-                        "downloadable": false,
-                        "manage_stock": false,
-                        "stock_quantity": null,
-                        "in_stock": true,
-                        "dimensions": {
-                            "colour":  all[igKey].dimensions.colour,
-                            "size":  all[igKey].dimensions.size,
-                            "hand":  all[igKey].dimensions.hand,
-                        },
-                        "categories": [
-                            {
-                                "id": catID
-                            }
-                        ],
-                        "attributes": [
-                            {
-                                "name": "size",
-                                "position": 0,
-                                "visible": true,
-                                "variation": true,
-                                "options": [
-                                    all[igKey].attributes[0].options[0] === '' ? '' : all[igKey].attributes[0].options[0]
-                                ]
-                            },
-                            {
-                                "name": "colour",
-                                "position": 0,
-                                "visible": true,
-                                "variation": true,
-                                "options": [
-                                    all[igKey].attributes[1].options[0] === '' ? '' : all[igKey].attributes[1].options[0]
-                                ]
-                            },
-                            {
-                                "name": "hand",
-                                "position": 0,
-                                "visible": true,
-                                "variation": true,
-                                "options": [
-                                    all[igKey].attributes[2].options[0] === '' ? '' : all[igKey].attributes[2].options[0]
-                                ]
-                            }
-                        ]
-                    }
-                    //console.log(all[igKey].title)
-                    // this.addProduct(allP, all[igKey].slug)
-                    console.log('cat found'+catID)
-                    //this.insertAll(all, catID)
-                }
-
-            })
-            console.log(catNames)
-            // step three * B : if we dont find it we insert cat first
-            if(typeof catID ==='undefined')  {
-                console.log('not eq')
-                if(catNames.includes(cat)) {
-                }else{
-                    console.log('not incl')
-                   // catNames.push(cat)
-                    console.log(cat)
-                    let catObj =  {
-                        "name": cat
-                    };
-
-                    fetch(SITE_ROOT+"/wp-json/wc/v2/products/categories",{
-                        method: 'post',
-                        headers: {
-                            'Accept': 'application/json, text/plain, *!/!*',
-                            'Content-Type': 'application/json',
-                            "Authorization": "Basic " + base64.encode(CK+":"+CS)
-
-                        },
-                        body: JSON.stringify(catObj)
-                    }).then((resp)=>{ return resp.json() }).then((json)=>{
-                        catID = json.id;
-                        let allP  = {
-                            "name":  all[igKey].name,
-                            "slug": all[igKey].slug,
-                            "type": "variable",
-                            "status": "publish",
-                            "price":  all[igKey].price,
-                            "purchasable": true,
-                            "total_sales": 0,
-                            "virtual": false,
-                            "downloadable": false,
-                            "manage_stock": false,
-                            "stock_quantity": null,
-                            "in_stock": true,
-                            "dimensions": {
-                                "colour":  all[igKey].dimensions.colour,
-                                "size":  all[igKey].dimensions.size,
-                                "hand":  all[igKey].dimensions.hand,
-                            },
-                            "categories": [
-                                {
-                                    "id": catID
-                                }
-                            ],
-                            "attributes": [
-                                {
-                                    "name": "size",
-                                    "position": 0,
-                                    "visible": true,
-                                    "variation": true,
-                                    "options": [
-                                        all[igKey].attributes[0].options[0] === '' ? '' : all[igKey].attributes[0].options[0]
-                                    ]
-                                },
-                                {
-                                    "name": "colour",
-                                    "position": 0,
-                                    "visible": true,
-                                    "variation": true,
-                                    "options": [
-                                        all[igKey].attributes[1].options[0] === '' ? '' : all[igKey].attributes[1].options[0]
-                                    ]
-                                },
-                                {
-                                    "name": "hand",
-                                    "position": 0,
-                                    "visible": true,
-                                    "variation": true,
-                                    "options": [
-                                        all[igKey].attributes[2].options[0] === '' ? '' : all[igKey].attributes[2].options[0]
-                                    ]
-                                }
-                            ]
-                        }
-                        //console.log(all[igKey].title)
-                        // this.addProduct(allP, all[igKey].slug)
-                        console.log('cat insereted'+catID)
-                        // step four: insert product
-                        //this.insertAll(all, catID)
-
-                    })
-
-
-                }
-            }
-
-
-
-
-        })
-    }
-
-
-    insertAllInsertCate = (catName) => {
-        let catID
-        let cat =  {
-                 "name": catName
+        let state = this.props.fetch
+        Object.keys(  state ).map( igKey => {
+            let pslug = (state[igKey].ProductName).replace(/\s+/g, '-').toLowerCase();
+            let addcat =  {
+                "name": state[igKey].ProdGroup
             };
 
-        return fetch(SITE_ROOT+"/wp-json/wc/v2/products/categories",{
-            method: 'post',
-            headers: {
-                'Accept': 'application/json, text/plain, *!/!*',
-                'Content-Type': 'application/json',
-                "Authorization": "Basic " + base64.encode(CK+":"+CS)
-
-            },
-            body: JSON.stringify(cat)
-        }).then((resp)=>{ return resp.json() }).then((json)=>{
-             catID = 55;
-            return catID;
+            this.addCat( pslug,addcat, state[igKey].ProdGroup)
         })
 
-
     }
 
-    insertAllInsertPr = (catid) => {
-        console.log('insi'+catid)
-    }
+
+
 
 
     render () {
-
         let all = []
         let data = ''
         // console.log(this.state.data)
@@ -580,23 +339,7 @@ console.log('called')
                      // console.log(state[igKey])
                      let pslug = (state[igKey].ProductName).replace(/\s+/g, '-').toLowerCase();
 
-                     let AllData = {
-                        "status": "publish",
-                        "title": state[igKey].ProductName,
-                        "content": state[igKey].SalesPrice,
-                        "Attrib1": state[igKey].Attrib1,
-                        "Attrib2": state[igKey].Attrib2,
-                        "Attrib3": state[igKey].Attrib3,
-                        "Brand": state[igKey].Brand,
-                        "MRRP": state[igKey].MRRP,
-                        "ProdGroup": state[igKey].ProdGroup,
-                        "ProductID": state[igKey].ProductID,
-                        "ProductName": state[igKey].ProductName,
-                        "SalesPrice": state[igKey].SalesPrice,
-                        "StyleNumber": state[igKey].StyleNumber,
-                        "SubGroup": state[igKey].SubGroup,
-                        "WebSalesPrice": state[igKey].WebSalesPrice
-                    }
+
                     let addcat =  {
                         "name": state[igKey].ProdGroup
                     };
@@ -610,12 +353,6 @@ console.log('called')
                         ]
                     }
 
-                  /*  all = [
-                        ...all,
-                        add
-
-                    ]
-*/
 
                     return (
 
@@ -653,7 +390,7 @@ console.log('called')
                 <div>
                     {spinner}
 
-                    <button className="btn btn-success" onClick={()=>this.insertAllcheckCat(all)}>Insert All Products</button>
+                    <button className="btn btn-success" onClick={()=>this.insertAll()}>Insert All Products</button>
 
 
 
