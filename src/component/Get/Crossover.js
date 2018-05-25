@@ -4,7 +4,9 @@ import base64 from 'base-64'
 import Spinner from '../../container/Spinner'
 import { SITE_ROOT, CK, CS  } from '../../config'
 
-
+let allCat = []
+let def = ''
+let prodName =''
 class  Crossover extends Component{
     constructor() {
 
@@ -13,9 +15,10 @@ class  Crossover extends Component{
             data: [],
             loading: false,
             woo:'',
+            carossCat: [],
             cats:'',
             selectedDay: undefined,
-            catID:'',
+            compareCat:'',
             catName: ''
 
 
@@ -36,7 +39,7 @@ class  Crossover extends Component{
 
                 })
 
-               console.log(response)
+              // console.log(response)
             })
             .catch(e => {
                 console.log(e)
@@ -58,10 +61,12 @@ class  Crossover extends Component{
             })
     }
 
+    componentWillUpdate (){
 
+    }
 
     addVariableProduct = ( ProductID, variable) => {
-        console.log('insert variable'+ProductID)
+        console.log('insert varaible')
          fetch(SITE_ROOT+"/wp-json/wc/v2/products/"+ProductID+"/variations",{
          method: 'post',
          headers: {
@@ -77,45 +82,55 @@ class  Crossover extends Component{
     }
 
 
-    addCat = ( pslug, addcat, catname ) =>{
+    addCat = ( pslug, addcat, catname, callback ) =>{
         this.setState({
-            loading: true
+            loading: true,
+            compareCat:144
         })
         let allWoo = this.state.cats
         let woocat = []
+        let crosscat = []
         let catWname = []
         let catID
 
         Object.keys( allWoo ).map( igKey => {
-
             catWname = [
                 ...catWname,
                 {[allWoo[igKey].name] : allWoo[igKey].id}
             ]
-
             return  woocat   = [
                 ... woocat,
                 allWoo[igKey].name
             ]
-
-
-
         })
+        
         // insert / update product based on slug
-        if(woocat.includes(catname)){
-            console.log('update cat')
-            this.setState({
-                loading: false
-            })
+        if( woocat.includes(catname) ){
+           // console.log('update cat')
+
             catWname.map( i => {
                 catID = i[catname]
+
                 if(typeof catID !== 'undefined') {
-                    this.addProduct( pslug, catID )
+                    this.addProduct( pslug, catID ,this.insertProduct )
                 }
             })
 
+
         }else {
+           // woocat.push(catname)
+            callback(woocat,catname, addcat, pslug)
+        }
+
+    }
+
+
+    insertCat = (woocat,catname, addcat, pslug) =>{
+
+
+        if(!woocat.includes(catname) && def !== catname) {
             console.log('insert cat')
+            def = catname
             return fetch(SITE_ROOT+"/wp-json/wc/v2/products/categories",{
                 method: 'post',
                 headers: {
@@ -132,13 +147,12 @@ class  Crossover extends Component{
                         loading: false
                     })
                     console.log(res)
-                     this.addProduct( pslug, res.id )
+                     this.addProduct( pslug, res.id,  this.insertProduct )
                 });
         }
 
-
     }
-    addProduct = ( pslug, catID ) => {
+    addProduct = ( pslug, catID  ,callback_p ) => {
         this.setState({
             loading: true
         })
@@ -148,7 +162,7 @@ class  Crossover extends Component{
         let postID
 
         Object.keys( allWoo ).map( igKey => {
-           // console.log(pslug +'=' + allWoo[igKey].slug)
+          //  console.log(pslug +'=' + allWoo[igKey].slug)
             postWid = [
                 ...postWid,
                 {[allWoo[igKey].slug] : allWoo[igKey].id}
@@ -176,7 +190,7 @@ class  Crossover extends Component{
 
                         if(pslugV === pslug) {
                             let p = state[ig].SalesPrice
-                            let variation = {
+                            let letiation = {
                                 "regular_price": p.toString(),
                                 "attributes": [
                                     {
@@ -196,7 +210,7 @@ class  Crossover extends Component{
                                     }
                                 ]
                             }
-                            this.addVariableProduct(postID, variation)
+                            this.addVariableProduct(postID, letiation)
                         }
                     })
                 }
@@ -205,94 +219,107 @@ class  Crossover extends Component{
 
 
         }else {
-            console.log('insert post')
-            let state = this.props.fetch
-            let add
-            Object.keys(state).map(igKey => {
-                if(typeof state[igKey].ProductName !== 'undefined') {
-                    let pslugC = (state[igKey].ProductName).replace(/\s+/g, '-').toLowerCase();
-                     if(pslugC === pslug) {
-                         add = {
-                             "name": state[igKey].ProductName,
-                             "slug": pslugC,
-                             "type": "variable",
-                             "status": "publish",
-                             "price": state[igKey].SalesPrice,
-                             "purchasable": true,
-                             "total_sales": 0,
-                             "virtual": false,
-                             "downloadable": false,
-                             "manage_stock": false,
-                             "stock_quantity": null,
-                             "in_stock": true,
-                             "dimensions": {
-                                 "colour": state[igKey].Attrib1,
-                                 "size": state[igKey].Attrib2,
-                                 "hand": state[igKey].Attrib3,
-                             },
-                             "categories": [
-                                 {
-                                     "id": catID
-                                 }
-                             ],
-                             "attributes": [
-                                 {
-                                     "name": "size",
-                                     "position": 0,
-                                     "visible": true,
-                                     "variation": true,
-                                     "options": [
-                                         state[igKey].Attrib1
-                                     ]
-                                 },
-                                 {
-                                     "name": "colour",
-                                     "position": 0,
-                                     "visible": true,
-                                     "variation": true,
-                                     "options": [
-                                         state[igKey].Attrib2
-                                     ]
-                                 },
-                                 {
-                                     "name": "hand",
-                                     "position": 0,
-                                     "visible": true,
-                                     "variation": true,
-                                     "options": [
-                                         state[igKey].Attrib3
-                                     ]
-                                 }
-                             ]
+            callback_p(slug, pslug, catID)
 
-
-                         }
-                     }
-                }
-            });
-
-            if(typeof add !== 'undefined') {
-
-                fetch(SITE_ROOT + "/wp-json/wc/v2/products", {
-                    method: 'post',
-                    headers: {
-                        'Accept': 'application/json, text/plain, *!/!*',
-                        'Content-Type': 'application/json',
-                        "Authorization": "Basic " + base64.encode(CK + ":" + CS)
-
-                    },
-                    body: JSON.stringify(add)
-                }).then(res => res.json())
-
-                    .then(res => {
-                        this.setState({
-                            loading: false
-                        })
-                        console.log(res)
-                    });
-            }
+           //this.insertProduct(pslug, catID)
         }
 
+
+
+    }
+
+    insertProduct = (slug, pslug, catID) => {
+        let state = this.props.fetch
+        let add
+        let pslugC
+
+        Object.keys(state).map(igKey => {
+            if(typeof state[igKey].ProductName !== 'undefined') {
+                pslugC = (state[igKey].ProductName).replace(/\s+/g, '-').toLowerCase();
+
+                if(pslugC === pslug) {
+                    add = {
+                        "name": state[igKey].ProductName,
+                        "slug": pslugC,
+                        "type": "variable",
+                        "status": "publish",
+                        "price": state[igKey].SalesPrice,
+                        "purchasable": true,
+                        "total_sales": 0,
+                        "virtual": false,
+                        "downloadable": false,
+                        "manage_stock": false,
+                        "stock_quantity": null,
+                        "in_stock": true,
+                        "dimensions": {
+                            "colour": state[igKey].Attrib1,
+                            "size": state[igKey].Attrib2,
+                            "hand": state[igKey].Attrib3,
+                        },
+                        "categories": [
+                            {
+                                "id": catID
+                            }
+                        ],
+                        "attributes": [
+                            {
+                                "name": "size",
+                                "position": 0,
+                                "visible": true,
+                                "letiation": true,
+                                "options": [
+                                    state[igKey].Attrib1
+                                ]
+                            },
+                            {
+                                "name": "colour",
+                                "position": 0,
+                                "visible": true,
+                                "letiation": true,
+                                "options": [
+                                    state[igKey].Attrib2
+                                ]
+                            },
+                            {
+                                "name": "hand",
+                                "position": 0,
+                                "visible": true,
+                                "letiation": true,
+                                "options": [
+                                    state[igKey].Attrib3
+                                ]
+                            }
+                        ]
+
+
+                    }
+                    if(!slug.includes(pslug) && prodName !== pslugC) {
+                        prodName = pslugC
+                        console.log('insert post')
+                         if (typeof add !== 'undefined') {
+
+                         fetch(SITE_ROOT + "/wp-json/wc/v2/products", {
+                         method: 'post',
+                         headers: {
+                         'Accept': 'application/json, text/plain, *!/!*',
+                         'Content-Type': 'application/json',
+                         "Authorization": "Basic " + base64.encode(CK + ":" + CS)
+
+                         },
+                         body: JSON.stringify(add)
+                         }).then(res => res.json())
+
+                         .then(res => {
+                         this.setState({
+                         loading: false
+                         })
+                         console.log(res)
+                         });
+                         }
+                    }
+                }
+            }
+        });
 
 
     }
@@ -312,7 +339,7 @@ class  Crossover extends Component{
                 "name": state[igKey].ProdGroup
             };
 
-            this.addCat( pslug,addcat, state[igKey].ProdGroup)
+            this.addCat( pslug,addcat, state[igKey].ProdGroup, this.insertCat)
         })
 
     }
@@ -343,10 +370,9 @@ class  Crossover extends Component{
                     let addcat =  {
                         "name": state[igKey].ProdGroup
                     };
-
-                    let variation = {
+                    let letiation = {
                         "default_attributes": [],
-                        "variations": [
+                        "letiations": [
                             17118,
                             17119,
                             17120
@@ -384,7 +410,6 @@ class  Crossover extends Component{
         }else {
             spinner = ''
         }
-
         return (
 
                 <div>
